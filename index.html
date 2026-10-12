@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Orangi Town — NDVI / AOD Time Series Viewer</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<style>
+  :root {
+    --bg: #f7f7f5;
+    --panel-bg: #ffffff;
+    --text: #1a1a1a;
+    --muted: #666;
+    --border: #ddd;
+    --accent: #2f6b3f;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #1c1c1c;
+      --panel-bg: #2a2a2a;
+      --text: #eee;
+      --muted: #aaa;
+      --border: #444;
+      --accent: #6fbf7f;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #1c1c1c;
+    --panel-bg: #2a2a2a;
+    --text: #eee;
+    --muted: #aaa;
+    --border: #444;
+    --accent: #6fbf7f;
+  }
+  html, body {
+    margin: 0; padding: 0; height: 100%;
+    font-family: -apple-system, Segoe UI, Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+  }
+  #app {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+  }
+  header {
+    padding: 12px 18px;
+    border-bottom: 1px solid var(--border);
+    background: var(--panel-bg);
+  }
+  header h1 {
+    font-size: 16px;
+    margin: 0 0 2px 0;
+  }
+  header p {
+    margin: 0;
+    font-size: 12px;
+    color: var(--muted);
+  }
+  #main {
+    flex: 1;
+    display: flex;
+    min-height: 0;
+  }
+  #map {
+    flex: 1;
+    min-width: 0;
+  }
+  #controls {
+    width: 260px;
+    flex-shrink: 0;
+    background: var(--panel-bg);
+    border-left: 1px solid var(--border);
+    padding: 16px;
+    overflow-y: auto;
+    box-sizing: border-box;
+  }
+  .section {
+    margin-bottom: 22px;
+  }
+  .section h2 {
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--muted);
+    margin: 0 0 10px 0;
+  }
+  .radio-row, .checkbox-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+    font-size: 14px;
+  }
+  #yearLabel {
+    font-size: 28px;
+    font-weight: 600;
+    color: var(--accent);
+    margin-bottom: 6px;
+  }
+  input[type="range"] {
+    width: 100%;
+  }
+  .legend-swatch {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    margin-bottom: 4px;
+  }
+  .swatch-bar {
+    height: 10px;
+    flex: 1;
+    border-radius: 2px;
+  }
+  .opacity-row {
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 6px;
+  }
+  .note {
+    font-size: 11px;
+    color: var(--muted);
+    line-height: 1.4;
+    margin-top: 4px;
+  }
+  #missingBanner {
+    display: none;
+    background: #b3541e22;
+    border: 1px solid #b3541e;
+    color: #b3541e;
+    font-size: 12px;
+    padding: 8px 10px;
+    border-radius: 6px;
+    margin-bottom: 12px;
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <h1>Orangi Town — NDVI &amp; AOD Time Series (2013–2026)</h1>
+    <p>Slide through years to compare vegetation (NDVI) and aerosol load (AOD) over the settlement boundary.</p>
+  </header>
+  <div id="main">
+    <div id="map"></div>
+    <div id="controls">
+
+      <div class="section">
+        <h2>Base Layer</h2>
+        <div class="radio-row">
+          <input type="radio" name="base" id="baseMap" checked>
+          <label for="baseMap">Map</label>
+        </div>
+        <div class="radio-row">
+          <input type="radio" name="base" id="baseSat">
+          <label for="baseSat">Satellite</label>
+        </div>
+      </div>
+
+      <div class="section">
+        <h2>Layers</h2>
+        <div class="checkbox-row">
+          <input type="checkbox" id="toggleNDVI" checked>
+          <label for="toggleNDVI">NDVI (vegetation)</label>
+        </div>
+        <div class="opacity-row">
+          Opacity: <input type="range" id="ndviOpacity" min="0" max="1" step="0.05" value="0.75" style="width:100px; vertical-align:middle;">
+        </div>
+        <div class="checkbox-row" style="margin-top:14px;">
+          <input type="checkbox" id="toggleAOD">
+          <label for="toggleAOD">AOD (aerosol / PM proxy)</label>
+        </div>
+        <div class="opacity-row">
+          Opacity: <input type="range" id="aodOpacity" min="0" max="1" step="0.05" value="0.75" style="width:100px; vertical-align:middle;">
+        </div>
+      </div>
+
+      <div class="section">
+        <h2>Year</h2>
+        <div id="missingBanner"></div>
+        <div id="yearLabel">2013</div>
+        <input type="range" id="yearSlider" min="2013" max="2026" step="1" value="2013">
+      </div>
+
+      <div class="section">
+        <h2>NDVI Legend</h2>
+        <div class="legend-swatch">
+          <span>Low</span>
+          <span class="swatch-bar" style="background: linear-gradient(to right, red, yellow, green);"></span>
+          <span>High</span>
+        </div>
+        <div class="note">Red = bare/low vegetation. Green = dense vegetation.</div>
+      </div>
+
+      <div class="section">
+        <h2>AOD Legend</h2>
+        <div class="legend-swatch">
+          <span>Clean</span>
+          <span class="swatch-bar" style="background: linear-gradient(to right, green, yellow, orange, red, purple);"></span>
+          <span>Heavy</span>
+        </div>
+        <div class="note">Green = clean air. Purple = heavy aerosol/particulate load.</div>
+      </div>
+
+      <div class="section">
+        <h2>Setup</h2>
+        <div class="note">
+          This page expects an <code>images/</code> folder next to it containing:<br>
+          <code>ndvi_2013.png</code> … <code>ndvi_2026.png</code><br>
+          <code>aod_2013.png</code> … <code>aod_2025.png</code><br><br>
+          Edit the <code>AOI_BOUNDS</code> value near the top of the script if the overlay doesn't align with the boundary — it currently uses an approximate bounding box for Orangi Town.
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+  // ---- CONFIG: adjust to match your actual AOI bounding box if the overlay misaligns ----
+  var AOI_BOUNDS = [
+    [24.93, 66.98], // south-west [lat, lng]
+    [24.99, 67.06]  // north-east [lat, lng]
+  ];
+  var NDVI_MIN_YEAR = 2013, NDVI_MAX_YEAR = 2026;
+  var AOD_MIN_YEAR = 2013, AOD_MAX_YEAR = 2025;
+
+  var map = L.map('map', { zoomControl: true }).fitBounds(AOI_BOUNDS);
+
+  var mapLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
+    maxZoom: 19,
+    attribution: 'Esri World Street Map'
+  });
+
+  var satLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+    maxZoom: 19,
+    attribution: 'Esri World Imagery'
+  });
+
+  mapLayer.addTo(map);
+
+  var ndviOverlay = L.imageOverlay('images/ndvi_2013.png', AOI_BOUNDS, { opacity: 0.75 });
+  var aodOverlay = L.imageOverlay('images/aod_2013.png', AOI_BOUNDS, { opacity: 0 });
+
+  ndviOverlay.addTo(map);
+  aodOverlay.addTo(map);
+
+  function setBase(sat) {
+    if (sat) {
+      map.removeLayer(mapLayer);
+      satLayer.addTo(map);
+    } else {
+      map.removeLayer(satLayer);
+      mapLayer.addTo(map);
+    }
+  }
+
+  document.getElementById('baseMap').addEventListener('change', function() { if (this.checked) setBase(false); });
+  document.getElementById('baseSat').addEventListener('change', function() { if (this.checked) setBase(true); });
+
+  var ndviToggle = document.getElementById('toggleNDVI');
+  var aodToggle = document.getElementById('toggleAOD');
+  var ndviOpacitySlider = document.getElementById('ndviOpacity');
+  var aodOpacitySlider = document.getElementById('aodOpacity');
+  var yearSlider = document.getElementById('yearSlider');
+  var yearLabel = document.getElementById('yearLabel');
+  var missingBanner = document.getElementById('missingBanner');
+
+  function applyOpacities() {
+    ndviOverlay.setOpacity(ndviToggle.checked ? parseFloat(ndviOpacitySlider.value) : 0);
+    aodOverlay.setOpacity(aodToggle.checked ? parseFloat(aodOpacitySlider.value) : 0);
+  }
+
+  function updateYear() {
+    var year = parseInt(yearSlider.value, 10);
+    yearLabel.textContent = year;
+
+    var warnings = [];
+
+    if (year >= NDVI_MIN_YEAR && year <= NDVI_MAX_YEAR) {
+      ndviOverlay.setUrl('images/ndvi_' + year + '.png');
+    } else {
+      warnings.push('No NDVI still for ' + year);
+    }
+
+    if (year >= AOD_MIN_YEAR && year <= AOD_MAX_YEAR) {
+      aodOverlay.setUrl('images/aod_' + year + '.png');
+    } else {
+      warnings.push('No AOD still for ' + year + ' (AOD data only through ' + AOD_MAX_YEAR + ')');
+    }
+
+    if (warnings.length) {
+      missingBanner.textContent = warnings.join(' · ');
+      missingBanner.style.display = 'block';
+    } else {
+      missingBanner.style.display = 'none';
+    }
+
+    applyOpacities();
+  }
+
+  ndviToggle.addEventListener('change', applyOpacities);
+  aodToggle.addEventListener('change', applyOpacities);
+  ndviOpacitySlider.addEventListener('input', applyOpacities);
+  aodOpacitySlider.addEventListener('input', applyOpacities);
+  yearSlider.addEventListener('input', updateYear);
+
+  // Handle missing image files gracefully (broken image -> hide instead of showing a broken icon)
+  ndviOverlay.on('error', function() { missingBanner.textContent = 'Missing file: images/ndvi_' + yearSlider.value + '.png'; missingBanner.style.display = 'block'; });
+  aodOverlay.on('error', function() { missingBanner.textContent = 'Missing file: images/aod_' + yearSlider.value + '.png'; missingBanner.style.display = 'block'; });
+
+  updateYear();
+</script>
+</body>
+</html>
