@@ -1,0 +1,189 @@
+/* RADS shared map template v1 — rads-map.css
+   Layout for Leaflet maps embedded as fixed-size iframes. Generic: no map-specific rules here.
+   Pair with rads-map.js from the same folder. Never edit v1 in place once maps use it;
+   copy to v2 and move maps over one at a time. */
+
+:root{
+  --rads-red:#D01C24;
+  --rads-ink:#1A1A1A;
+  --rads-text:#333333;
+  --rads-muted:#5E5E5E;
+  --rads-border:#D6D6D6;
+  --rads-bg:#FFFFFF;
+  --rads-hover:#F3F3F3;
+  --rads-shadow:0 1px 3px rgba(0,0,0,.28),0 2px 10px rgba(0,0,0,.14);
+  --rads-gap:12px;
+  --rads-ctl:40px;          /* minimum touch target */
+  --rads-panel-w:260px;
+  --rads-attr-h:40px;       /* space kept clear for the attribution strip */
+}
+
+html,body{height:100%;margin:0;padding:0;overflow:hidden}
+body{font-family:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;color:var(--rads-text)}
+#map{position:absolute;top:0;right:0;bottom:0;left:0}
+.leaflet-container{font-family:inherit}
+
+.rads-ui,.rads-ui *{box-sizing:border-box}
+.rads-ui{color-scheme:light}           /* white panels keep light form controls even if the map page goes dark */
+:where(.rads-ui) button,:where(.rads-ui) input{font:inherit;color:inherit}
+.rads-sr{position:absolute!important;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+
+/* ── focus ─────────────────────────────────────────────────────────────── */
+.rads-ui :focus{outline:none}
+.rads-ui :focus-visible,
+.leaflet-control a:focus-visible,
+.leaflet-container a.leaflet-popup-close-button:focus-visible{outline:2px solid var(--rads-red);outline-offset:2px}
+
+/* ── title chip (top left) ─────────────────────────────────────────────── */
+.rads-chip{
+  position:absolute;z-index:1001;top:var(--rads-gap);left:var(--rads-gap);
+  display:flex;align-items:stretch;height:var(--rads-ctl);
+  /* leaves room for the Layers button on the right */
+  max-width:calc(100% - 2*var(--rads-gap) - 112px - var(--rads-gap));
+  background:var(--rads-bg);border:1px solid var(--rads-border);border-radius:0;box-shadow:var(--rads-shadow);
+}
+.rads-chip h1{
+  margin:0;padding:0 12px;min-width:0;flex:1 1 auto;
+  font-size:14px;font-weight:600;line-height:38px;color:var(--rads-ink);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.rads-info-btn{
+  flex:none;width:var(--rads-ctl);margin:0;padding:0;border:0;border-left:1px solid var(--rads-border);
+  background:var(--rads-bg);color:var(--rads-ink);cursor:pointer;border-radius:0;
+  display:flex;align-items:center;justify-content:center;
+}
+.rads-info-btn svg{width:18px;height:18px}
+.rads-info-btn:hover{background:var(--rads-hover)}
+.rads-info-btn[aria-expanded="true"]{background:var(--rads-red);color:#fff}
+
+.rads-popover{
+  position:absolute;z-index:1003;top:calc(var(--rads-gap) + var(--rads-ctl) + 6px);left:var(--rads-gap);
+  width:300px;max-width:calc(100% - 2*var(--rads-gap));
+  padding:10px 12px;background:var(--rads-bg);border:1px solid var(--rads-border);
+  border-top:3px solid var(--rads-red);border-radius:0;box-shadow:var(--rads-shadow);
+  font-size:12.5px;line-height:1.5;color:var(--rads-text);
+}
+.rads-popover[hidden]{display:none}
+
+/* ── status line (bottom left, only while it has text) ─────────────────── */
+.rads-status{
+  position:absolute;z-index:1001;left:var(--rads-gap);bottom:var(--rads-gap);max-width:50%;
+  padding:6px 10px;background:var(--rads-bg);border:1px solid var(--rads-border);box-shadow:var(--rads-shadow);
+  font-size:12px;line-height:1.4;color:var(--rads-text);
+}
+.rads-status[hidden]{display:none}
+
+/* ── Leaflet zoom control: below the chip, 40 px targets, flat ─────────── */
+.leaflet-top.leaflet-left{top:calc(var(--rads-gap) + var(--rads-ctl) - 2px)}
+.leaflet-top.leaflet-left .leaflet-control{margin-left:var(--rads-gap)}
+.leaflet-bar,.leaflet-touch .leaflet-bar{border:1px solid var(--rads-border);border-radius:0;box-shadow:var(--rads-shadow);background-clip:border-box}
+.leaflet-bar a,.leaflet-touch .leaflet-bar a{
+  width:var(--rads-ctl);height:var(--rads-ctl);line-height:var(--rads-ctl);
+  border-radius:0!important;color:var(--rads-ink);font-size:20px;
+}
+.leaflet-bar a:hover{background:var(--rads-hover)}
+
+/* ── layers panel (top right) ──────────────────────────────────────────── */
+.rads-panel{
+  position:absolute;z-index:1002;top:var(--rads-gap);right:var(--rads-gap);
+  width:var(--rads-panel-w);max-width:calc(100% - 2*var(--rads-gap));
+  max-height:calc(100% - var(--rads-gap) - var(--rads-attr-h));
+  display:flex;flex-direction:column;align-items:flex-end;
+  pointer-events:none;             /* empty space beside the button stays clickable map */
+}
+.rads-panel > *{pointer-events:auto}
+.rads-toggle{
+  flex:none;display:inline-flex;align-items:center;gap:8px;height:var(--rads-ctl);min-width:var(--rads-ctl);
+  margin:0;padding:0 14px;background:var(--rads-bg);color:var(--rads-ink);
+  border:1px solid var(--rads-border);border-radius:0;box-shadow:var(--rads-shadow);
+  font-size:14px;font-weight:600;cursor:pointer;
+}
+.rads-toggle:hover{background:var(--rads-hover)}
+.rads-toggle[aria-expanded="true"]{background:var(--rads-red);border-color:var(--rads-red);color:#fff}
+.rads-toggle svg{width:16px;height:16px;flex:none}
+
+.rads-body{
+  width:100%;min-height:0;flex:0 1 auto;margin-top:6px;overflow-y:auto;overscroll-behavior:contain;
+  background:var(--rads-bg);border:1px solid var(--rads-border);border-radius:0;box-shadow:var(--rads-shadow);
+}
+.rads-body[hidden]{display:none}
+
+/* narrow boxes: never let the open panel cover more than ~40 % of the map */
+@media (max-width:599px){
+  .rads-panel{max-height:50%}
+}
+
+.rads-sec{margin:0;padding:8px 12px 10px;border:0;border-top:1px solid var(--rads-border);min-width:0}
+.rads-sec:first-child{border-top:0}
+.rads-sec h2,.rads-sec legend{
+  display:block;margin:0 0 2px;padding:0;
+  font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--rads-muted);
+}
+fieldset.rads-sec legend{float:left;width:100%}
+fieldset.rads-sec legend + *{clear:both}
+
+/* search */
+.rads-search{
+  display:block;width:100%;height:var(--rads-ctl);margin-top:4px;padding:0 10px;
+  border:1px solid var(--rads-border);border-radius:0;background:#fff;font-size:13px;color:var(--rads-ink);
+}
+.rads-search:focus-visible{outline:2px solid var(--rads-red);outline-offset:0;border-color:var(--rads-red)}
+
+/* zoom-to buttons */
+.rads-zoomto{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
+.rads-chipbtn{
+  min-height:var(--rads-ctl);max-width:100%;padding:0 10px;margin:0;
+  background:#fff;color:var(--rads-ink);border:1px solid var(--rads-border);border-radius:0;
+  font-size:12.5px;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.rads-chipbtn:hover{border-color:var(--rads-red);color:var(--rads-red)}
+
+/* checkbox / radio rows */
+.rads-row{
+  display:flex;align-items:center;gap:10px;min-height:var(--rads-ctl);margin:0 -4px;padding:0 4px;
+  font-size:13px;line-height:1.25;color:var(--rads-ink);cursor:pointer;
+}
+.rads-row:hover{background:var(--rads-hover)}
+.rads-row input{flex:none;width:18px;height:18px;margin:0;accent-color:var(--rads-red);cursor:pointer}
+.rads-row .rads-lbl{flex:1 1 auto;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rads-row.is-disabled{opacity:.5;cursor:not-allowed}
+.rads-row.is-disabled input{cursor:not-allowed}
+
+/* sliders */
+.rads-range{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--rads-muted)}
+.rads-range.is-sub{padding-left:28px;margin-top:-6px}
+.rads-range input[type=range]{flex:1 1 auto;min-width:0;height:var(--rads-ctl);margin:0;accent-color:var(--rads-red);cursor:pointer}
+.rads-range output{flex:none;min-width:3.2em;text-align:right;font-variant-numeric:tabular-nums;color:var(--rads-ink)}
+
+/* legend */
+.rads-legend-list{margin:2px 0 0;padding:0;list-style:none}
+.rads-leg{display:flex;align-items:center;gap:8px;min-height:22px;font-size:12px;line-height:1.3;color:var(--rads-ink);font-variant-numeric:tabular-nums}
+.rads-leg-h{margin:8px 0 2px;font-size:12px;font-weight:600;color:var(--rads-ink)}
+.rads-leg-h:first-child{margin-top:2px}
+.rads-row .rads-sw,.rads-leg .rads-sw{flex:none}
+.rads-sw{display:inline-block;width:14px;height:14px;border:1px solid rgba(0,0,0,.35)}
+.rads-sw.is-dot{border-radius:50%}
+.rads-sw.is-line{height:0;width:18px;border:0;border-top:3px solid currentColor}
+.rads-sw.is-dash{height:0;width:18px;border:0;border-top:3px dashed currentColor}
+.rads-sw.is-outline{background:transparent!important;border:2px solid currentColor}
+.rads-grad{width:100%}
+.rads-grad .rads-bar{height:10px;border:1px solid rgba(0,0,0,.25);margin:3px 0 2px}
+.rads-grad .rads-ends{display:flex;justify-content:space-between;font-size:11px;color:var(--rads-muted)}
+
+/* ── Leaflet popups and tooltips in the house style ────────────────────── */
+.leaflet-popup-content-wrapper,.leaflet-popup-tip{border-radius:0;box-shadow:var(--rads-shadow)}
+.leaflet-popup-content-wrapper{border:1px solid var(--rads-border)}
+.leaflet-popup-content{margin:12px 14px;font-size:12.5px;line-height:1.45;color:var(--rads-text)}
+.leaflet-container a.leaflet-popup-close-button{width:32px;height:32px;font:20px/30px Tahoma,Verdana,sans-serif;color:var(--rads-muted)}
+.leaflet-container a.leaflet-popup-close-button:hover{color:var(--rads-red)}
+.leaflet-tooltip{border-radius:0;border:1px solid var(--rads-border);box-shadow:var(--rads-shadow);color:var(--rads-text)}
+/* attribution: one small line with only the credits the tile providers require; other credits go in the note */
+.leaflet-container .leaflet-control-attribution{
+  margin:0;padding:1px 6px;font-size:10px;line-height:1.5;color:var(--rads-muted);
+  background:rgba(255,255,255,.78);max-width:calc(100vw - 24px);
+}
+.leaflet-container .leaflet-control-attribution a{color:var(--rads-muted)}
+
+@media (prefers-reduced-motion:reduce){
+  .rads-ui,.rads-ui *{transition:none!important;animation:none!important;scroll-behavior:auto!important}
+}
